@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador de Presupuestos</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --paper: #f8f8f8;
+    --accent: #e8b800;
+    --accent-light: #fff8d6;
+    --red: #ff0000;
+    --red-light: #fff0f0;
+    --muted: #888888;
+    --border: #e0e0e0;
+    --white: #ffffff;
+    --danger: #d32f2f;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .app-header {
+    background: var(--red);
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .app-header h1 {
+    font-family: 'Playfair Display', serif;
+    color: var(--white);
+    font-size: 1.4rem;
+    letter-spacing: 0.02em;
+  }
+  .app-header span {
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ── LAYOUT ── */
+  .workspace {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 60px);
+  }
+
+  /* ── PANEL IZQUIERDO (formulario) ── */
+  .panel {
+    background: var(--white);
+    border-right: 1px solid var(--border);
+    padding: 32px 28px;
+    overflow-y: auto;
+    max-height: calc(100vh - 60px);
+  }
+
+  .panel-section {
+    margin-bottom: 28px;
+  }
+  .panel-section-title {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 5px;
+    margin-top: 12px;
+  }
+  label:first-of-type { margin-top: 0; }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  textarea,
+  select {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    color: var(--ink);
+    background: var(--paper);
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--red);
+    background: var(--white);
+  }
+  textarea { resize: vertical; min-height: 64px; }
+
+  /* Logo upload */
+  .logo-upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--paper);
+    position: relative;
+  }
+  .logo-upload-area:hover { border-color: var(--accent); background: var(--accent-light); }
+  .logo-upload-area img { max-height: 80px; max-width: 100%; object-fit: contain; }
+  .logo-upload-area p { font-size: 0.78rem; color: var(--muted); margin-top: 6px; }
+  .logo-upload-area .icon { font-size: 2rem; }
+  #logoInput { display: none; }
+
+  /* Servicios */
+  .services-list { display: flex; flex-direction: column; gap: 8px; }
+  .service-item {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: 1fr 80px 80px 28px;
+    gap: 6px;
+    align-items: center;
+    font-size: 0.82rem;
+  }
+  .service-item input {
+    padding: 6px 8px;
+    font-size: 0.82rem;
+    margin: 0;
+  }
+  .btn-remove {
+    background: none;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0;
+    transition: color 0.2s;
+    text-align: center;
+  }
+  .btn-remove:hover { color: var(--danger); }
+
+  .btn-add {
+    width: 100%;
+    margin-top: 10px;
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn-add:hover { border-color: var(--accent); color: #a07c00; background: var(--accent-light); }
+
+  /* Impuestos */
+  .tax-row {
+    display: grid;
+    grid-template-columns: 1fr 100px 28px;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .tax-row input { padding: 7px 10px; font-size: 0.82rem; margin: 0; }
+
+  /* Botón generar PDF */
+  .btn-pdf {
+    width: 100%;
+    background: var(--red);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    padding: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .btn-pdf:hover { background: #cc0000; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(255,0,0,0.3); }
+  .btn-pdf:active { transform: translateY(0); }
+
+  /* ── PREVIEW (derecha) ── */
+  .preview-area {
+    padding: 40px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #efefef;
+    max-height: calc(100vh - 60px);
+  }
+  .preview-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+    font-weight: 500;
+  }
+
+  /* ── DOCUMENTO PDF ── */
+  #quotePDF {
+    width: 794px;
+    min-height: 1123px;
+    background: var(--white);
+    box-shadow: 0 8px 48px rgba(0,0,0,0.12);
+    padding: 56px 60px;
+    position: relative;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  /* Franja superior del documento */
+  .doc-topbar {
+    height: 7px;
+    background: linear-gradient(90deg, var(--red) 60%, var(--accent) 100%);
+    margin: -56px -60px 40px -60px;
+  }
+
+  .doc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 40px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .doc-company-block { flex: 1; }
+  .doc-logo {
+    max-height: 72px;
+    max-width: 180px;
+    object-fit: contain;
+    margin-bottom: 10px;
+  }
+  .doc-company-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .doc-company-info {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.6;
+  }
+
+  .doc-quote-meta {
+    text-align: right;
+    min-width: 180px;
+  }
+  .doc-quote-badge {
+    display: inline-block;
+    background: var(--red);
+    color: var(--white);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 3px;
+    margin-bottom: 10px;
+  }
+  .doc-quote-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .doc-meta-row {
+    font-size: 0.76rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .doc-meta-row strong { color: var(--ink); }
+
+  /* Sección cliente */
+  .doc-client-section {
+    background: var(--red-light);
+    border-left: 3px solid var(--red);
+    padding: 14px 20px;
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 32px;
+  }
+  .doc-client-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .doc-client-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .doc-client-notes {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  /* Tabla de servicios */
+  .doc-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 28px;
+    font-size: 0.84rem;
+  }
+  .doc-table thead tr {
+    background: var(--red);
+    color: var(--white);
+  }
+  .doc-table thead th {
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .doc-table thead th:last-child,
+  .doc-table thead th:nth-child(2),
+  .doc-table thead th:nth-child(3) { text-align: right; }
+  .doc-table tbody tr { border-bottom: 1px solid var(--border); }
+  .doc-table tbody tr:last-child { border-bottom: none; }
+  .doc-table tbody tr:hover { background: #fdf9f4; }
+  .doc-table td { padding: 11px 14px; color: var(--ink); vertical-align: top; }
+  .doc-table td:nth-child(2),
+  .doc-table td:nth-child(3),
+  .doc-table td:last-child { text-align: right; }
+  .doc-table td:first-child { font-weight: 500; }
+  .doc-table .desc-cell { font-size: 0.76rem; color: var(--muted); font-weight: 400; margin-top: 2px; }
+
+  /* Totales */
+  .doc-totals {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 40px;
+  }
+  .totals-box {
+    width: 260px;
+    font-size: 0.84rem;
+  }
+  .totals-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .totals-row:last-child { border-bottom: none; }
+  .totals-row.total-final {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-top: 6px;
+    padding-top: 10px;
+    border-top: 2px solid var(--red);
+  }
+  .totals-row span:last-child { font-weight: 500; color: var(--ink); }
+  .totals-row.total-final span:last-child { color: var(--red); }
+
+  /* Notas / footer */
+  .doc-notes {
+    background: var(--paper);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 28px;
+  }
+  .doc-notes strong { color: var(--ink); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 4px; }
+
+  .doc-footer {
+    border-top: 1px solid var(--border);
+    padding-top: 18px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  /* Responsive mínimo */
+  @media (max-width: 1200px) {
+    .workspace { grid-template-columns: 300px 1fr; }
+    #quotePDF { width: 680px; }
+  }
+  @media (max-width: 900px) {
+    .workspace { grid-template-columns: 1fr; }
+    .panel { max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
+    .preview-area { max-height: none; padding: 24px 12px; }
+    #quotePDF { width: 100%; min-width: 320px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>✦ Presupuestos Pro</h1>
+  <span>Generador de cotizaciones</span>
+</header>
+
+<div class="workspace">
+
+  <!-- ════ PANEL IZQUIERDO ════ -->
+  <aside class="panel">
+
+    <!-- Logo & Empresa -->
+    <div class="panel-section">
+      <div class="panel-section-title">Tu empresa</div>
+
+      <div class="logo-upload-area" onclick="document.getElementById('logoInput').click()" id="logoArea">
+        <div id="logoPlaceholder">
+          <div class="icon">🖼️</div>
+          <p>Haz clic para subir tu logotipo</p>
+        </div>
+        <img id="logoPreview" style="display:none" alt="Logo">
+      </div>
+      <input type="file" id="logoInput" accept="image/*">
+
+      <label>Nombre de la empresa</label>
+      <input type="text" id="companyName" placeholder="Mi Empresa S.A." oninput="updatePreview()">
+
+      <label>Información adicional (teléfono, web, dirección…)</label>
+      <textarea id="companyInfo" placeholder="Tel: 477 123 4567&#10;contacto@miempresa.com" oninput="updatePreview()"></textarea>
+    </div>
+
+    <!-- Cliente -->
+    <div class="panel-section">
+      <div class="panel-section-title">Cliente</div>
+      <label>Nombre del cliente</label>
+      <input type="text" id="clientName" placeholder="Nombre del cliente o empresa" oninput="updatePreview()">
+      <label>Notas del cliente</label>
+      <input type="text" id="clientNotes" placeholder="RFC, dirección, proyecto…" oninput="updatePreview()">
+    </div>
+
+    <!-- Metadata -->
+    <div class="panel-section">
+      <div class="panel-section-title">Cotización</div>
+      <label>Número de cotización</label>
+      <input type="text" id="quoteNumber" placeholder="COT-001" oninput="updatePreview()">
+      <label>Fecha</label>
+      <input type="date" id="quoteDate" oninput="updatePreview()">
+      <label>Válida hasta</label>
+      <input type="date" id="quoteValidity" oninput="updatePreview()">
+      <label>Moneda</label>
+      <select id="currency" onchange="updatePreview()">
+        <option value="MXN">MXN — Peso mexicano</option>
+        <option value="USD">USD — Dólar americano</option>
+        <option value="EUR">EUR — Euro</option>
+      </select>
+    </div>
+
+    <!-- Servicios -->
+    <div class="panel-section">
+      <div class="panel-section-title">Servicios / Productos</div>
+      <div style="display:grid; grid-template-columns:1fr 80px 80px 28px; gap:6px; font-size:0.7rem; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; padding:0 2px 4px;">
+        <span>Descripción</span><span style="text-align:right">Cant.</span><span style="text-align:right">Precio</span><span></span>
+      </div>
+      <div class="services-list" id="servicesList"></div>
+      <button class="btn-add" onclick="addService()">＋ Agregar servicio</button>
+    </div>
+
+    <!-- Impuestos -->
+    <div class="panel-section">
+      <div class="panel-section-title">Impuestos</div>
+      <div id="taxList"></div>
+      <button class="btn-add" onclick="addTax()">＋ Agregar impuesto</button>
+    </div>
+
+    <!-- Notas finales -->
+    <div class="panel-section">
+      <div class="panel-section-title">Notas / Condiciones</div>
+      <textarea id="quoteNotes" placeholder="Términos de pago, tiempo de entrega, vigencia, etc." oninput="updatePreview()"></textarea>
+    </div>
+
+    <!-- CTA -->
+    <button class="btn-pdf" onclick="generatePDF()">
+      ⬇ Descargar PDF
+    </button>
+
+  </aside>
+
+  <!-- ════ ÁREA DE VISTA PREVIA ════ -->
+  <main class="preview-area">
+    <div class="preview-label">Vista previa en tiempo real</div>
+
+    <!-- Documento que se convierte a PDF -->
+    <div id="quotePDF">
+      <div class="doc-topbar"></div>
+
+      <!-- Cabecera empresa -->
+      <div class="doc-header">
+        <div class="doc-company-block">
+          <img id="pdfLogo" class="doc-logo" src="" alt="Logo" style="display:none">
+          <div class="doc-company-name" id="pdfCompanyName">Nombre de la Empresa</div>
+          <div class="doc-company-info" id="pdfCompanyInfo"></div>
+        </div>
+        <div class="doc-quote-meta">
+          <div class="doc-quote-badge">Cotización</div>
+          <div class="doc-quote-number" id="pdfQuoteNumber">COT-001</div>
+          <div class="doc-meta-row">Fecha: <strong id="pdfDate">—</strong></div>
+          <div class="doc-meta-row">Válida hasta: <strong id="pdfValidity">—</strong></div>
+        </div>
+      </div>
+
+      <!-- Cliente -->
+      <div class="doc-client-section">
+        <div class="doc-client-label">Cotización para</div>
+        <div class="doc-client-name" id="pdfClientName">Nombre del cliente</div>
+        <div class="doc-client-notes" id="pdfClientNotes"></div>
+      </div>
+
+      <!-- Tabla de servicios -->
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Descripción</th>
+            <th>Cant.</th>
+            <th>Precio unit.</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="pdfTableBody">
+          <tr><td colspan="4" style="text-align:center; color:var(--muted); font-size:0.8rem; padding:24px;">Agrega servicios en el panel izquierdo</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Totales -->
+      <div class="doc-totals">
+        <div class="totals-box" id="pdfTotals">
+          <div class="totals-row">
+            <span>Subtotal</span>
+            <span id="pdfSubtotal">$0.00</span>
+          </div>
+          <!-- Los impuestos se insertan aquí dinámicamente -->
+          <div class="totals-row total-final">
+            <span>Total</span>
+            <span id="pdfTotal">$0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notas -->
+      <div class="doc-notes" id="pdfNotes" style="display:none">
+        <strong>Notas y condiciones</strong>
+        <span id="pdfNotesText"></span>
+      </div>
+
+      <!-- Footer -->
+      <div class="doc-footer">
+        <span id="pdfFooterCompany">—</span>
+        <span>Documento generado con Presupuestos Pro</span>
+      </div>
+
+    </div><!-- /quotePDF -->
+  </main>
+
+</div><!-- /workspace -->
+
+<script>
+// ── Estado ──────────────────────────────────────────────
+let services = [];
+let taxes = [];
+let logoDataURL = '';
+
+// ── Init ─────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('quoteDate').valueAsDate = new Date();
+  const validity = new Date(); validity.setDate(validity.getDate() + 30);
+  document.getElementById('quoteValidity').valueAsDate = validity;
+  document.getElementById('quoteNumber').value = 'COT-001';
+  addService();
+  addTax('IVA 16%', 16);
+  updatePreview();
+});
+
+// ── Logo ─────────────────────────────────────────────────
+document.getElementById('logoInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    logoDataURL = ev.target.result;
+    const img = document.getElementById('logoPreview');
+    img.src = logoDataURL;
+    img.style.display = 'block';
+    document.getElementById('logoPlaceholder').style.display = 'none';
+    updatePreview();
+  };
+  reader.readAsDataURL(file);
+});
+
+// ── Servicios ────────────────────────────────────────────
+function addService() {
+  const id = Date.now();
+  services.push({ id, name: '', qty: 1, price: 0 });
+  renderServices();
+}
+
+function removeService(id) {
+  services = services.filter(s => s.id !== id);
+  renderServices();
+  updatePreview();
+}
+
+function renderServices() {
+  const list = document.getElementById('servicesList');
+  list.innerHTML = '';
+  services.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'service-item';
+    div.innerHTML = `
+      <input type="text" placeholder="Nombre del servicio" value="${s.name}"
+             oninput="updateServiceField(${s.id},'name',this.value)">
+      <input type="number" placeholder="1" value="${s.qty}" min="1"
+             oninput="updateServiceField(${s.id},'qty',this.value)">
+      <input type="number" placeholder="0.00" value="${s.price}" min="0" step="0.01"
+             oninput="updateServiceField(${s.id},'price',this.value)">
+      <button class="btn-remove" onclick="removeService(${s.id})">✕</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function updateServiceField(id, field, value) {
+  const s = services.find(s => s.id === id);
+  if (s) { s[field] = field === 'name' ? value : parseFloat(value) || 0; }
+  updatePreview();
+}
+
+// ── Impuestos ─────────────────────────────────────────────
+function addTax(name = '', rate = 0) {
+  const id = Date.now();
+  taxes.push({ id, name, rate });
+  renderTaxes();
+  updatePreview();
+}
+
+function removeTax(id) {
+  taxes = taxes.filter(t => t.id !== id);
+  renderTaxes();
+  updatePreview();
+}
+
+function renderTaxes() {
+  const list = document.getElementById('taxList');
+  list.innerHTML = '';
+  taxes.forEach(t => {
+    const div = document.createElement('div');
+    div.className = 'tax-row';
+    div.innerHTML = `
+      <input type="text" placeholder="Nombre (ej. IVA)" value="${t.name}"
+             oninput="updateTaxField(${t.id},'name',this.value)">
+      <input type="number" placeholder="%" value="${t.rate}" min="0" max="100" step="0.01"
+             oninput="updateTaxField(${t.id},'rate',this.value)" style="text-align:right">
+      <button class="btn-remove" onclick="removeTax(${t.id})">✕</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function updateTaxField(id, field, value) {
+  const t = taxes.find(t => t.id === id);
+  if (t) { t[field] = field === 'name' ? value : parseFloat(value) || 0; }
+  updatePreview();
+}
+
+// ── Formateo de moneda ────────────────────────────────────
+function fmt(num) {
+  const cur = document.getElementById('currency')?.value || 'MXN';
+  const symbol = cur === 'MXN' ? 'MX$' : cur === 'USD' ? 'US$' : '€';
+  return symbol + ' ' + num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function fmtDate(str) {
+  if (!str) return '—';
+  const [y, m, d] = str.split('-');
+  const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+}
+
+// ── Actualizar vista previa ───────────────────────────────
+function updatePreview() {
+  // Logo
+  const pdfLogo = document.getElementById('pdfLogo');
+  if (logoDataURL) { pdfLogo.src = logoDataURL; pdfLogo.style.display = 'block'; }
+  else { pdfLogo.style.display = 'none'; }
+
+  // Empresa
+  document.getElementById('pdfCompanyName').textContent =
+    document.getElementById('companyName').value || 'Nombre de la Empresa';
+  document.getElementById('pdfCompanyInfo').innerHTML =
+    (document.getElementById('companyInfo').value || '').replace(/\n/g, '<br>');
+  document.getElementById('pdfFooterCompany').textContent =
+    document.getElementById('companyName').value || '—';
+
+  // Meta
+  document.getElementById('pdfQuoteNumber').textContent =
+    document.getElementById('quoteNumber').value || 'COT-001';
+  document.getElementById('pdfDate').textContent =
+    fmtDate(document.getElementById('quoteDate').value);
+  document.getElementById('pdfValidity').textContent =
+    fmtDate(document.getElementById('quoteValidity').value);
+
+  // Cliente
+  document.getElementById('pdfClientName').textContent =
+    document.getElementById('clientName').value || 'Nombre del cliente';
+  document.getElementById('pdfClientNotes').textContent =
+    document.getElementById('clientNotes').value || '';
+
+  // Servicios → tabla
+  const tbody = document.getElementById('pdfTableBody');
+  tbody.innerHTML = '';
+  if (services.length === 0 || services.every(s => !s.name)) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);font-size:0.8rem;padding:24px;">Agrega servicios en el panel izquierdo</td></tr>';
+  } else {
+    services.filter(s => s.name).forEach(s => {
+      const total = (s.qty || 0) * (s.price || 0);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${s.name}</td>
+        <td>${s.qty}</td>
+        <td>${fmt(s.price)}</td>
+        <td>${fmt(total)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Cálculos
+  const subtotal = services.filter(s => s.name).reduce((acc, s) => acc + (s.qty||0)*(s.price||0), 0);
+
+  // Totales box → reconstruir filas de impuesto
+  const totalsBox = document.getElementById('pdfTotals');
+  // Limpiar impuestos anteriores (todo excepto subtotal y total)
+  const oldTaxRows = totalsBox.querySelectorAll('.tax-dynamic');
+  oldTaxRows.forEach(el => el.remove());
+
+  document.getElementById('pdfSubtotal').textContent = fmt(subtotal);
+
+  let taxTotal = 0;
+  const totalFinalRow = totalsBox.querySelector('.total-final');
+  taxes.forEach(t => {
+    if (!t.name) return;
+    const amount = subtotal * (t.rate / 100);
+    taxTotal += amount;
+    const row = document.createElement('div');
+    row.className = 'totals-row tax-dynamic';
+    row.innerHTML = `<span>${t.name} (${t.rate}%)</span><span>${fmt(amount)}</span>`;
+    totalsBox.insertBefore(row, totalFinalRow);
+  });
+
+  const total = subtotal + taxTotal;
+  document.getElementById('pdfTotal').textContent = fmt(total);
+
+  // Notas
+  const notesVal = document.getElementById('quoteNotes').value;
+  const pdfNotes = document.getElementById('pdfNotes');
+  if (notesVal.trim()) {
+    pdfNotes.style.display = 'block';
+    document.getElementById('pdfNotesText').textContent = notesVal;
+  } else {
+    pdfNotes.style.display = 'none';
+  }
+}
+
+// ── Generar PDF ───────────────────────────────────────────
+function generatePDF() {
+  const element = document.getElementById('quotePDF');
+  const quoteNum = document.getElementById('quoteNumber').value || 'cotizacion';
+  const client = document.getElementById('clientName').value || 'cliente';
+
+  const opt = {
+    margin: 0,
+    filename: `${quoteNum}_${client}.pdf`.replace(/\s+/g, '_'),
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' }
+  };
+
+  const btn = document.querySelector('.btn-pdf');
+  btn.textContent = '⏳ Generando PDF…';
+  btn.disabled = true;
+
+  html2pdf().set(opt).from(element).save().then(() => {
+    btn.innerHTML = '⬇ Descargar PDF';
+    btn.disabled = false;
+  });
+}
+</script>
+</body>
+</html>
