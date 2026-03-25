@@ -1,315 +1,832 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-  <meta charset="utf-8">
-  <title>MENU | JICAMAS DE LEON MULZA</title>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <meta content="" name="keywords">
-  <meta content="" name="description">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador de Presupuestos</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --paper: #f8f8f8;
+    --accent: #e8b800;
+    --accent-light: #fff8d6;
+    --red: #ff0000;
+    --red-light: #fff0f0;
+    --muted: #888888;
+    --border: #e0e0e0;
+    --white: #ffffff;
+    --danger: #d32f2f;
+  }
 
-  <!-- Facebook Opengraph integration: https://developers.facebook.com/docs/sharing/opengraph -->
-  <meta property="og:title" content="">
-  <meta property="og:image" content="">
-  <meta property="og:url" content="">
-  <meta property="og:site_name" content="">
-  <meta property="og:description" content="">
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  <!-- Twitter Cards integration: https://dev.twitter.com/cards/  -->
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:site" content="">
-  <meta name="twitter:title" content="">
-  <meta name="twitter:description" content="">
-  <meta name="twitter:image" content="">
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+  }
 
-  <!-- Place your favicon.ico and apple-touch-icon.png in the template root directory -->
-  <link href="favicon.ico" rel="shortcut icon">
+  /* ── HEADER ── */
+  .app-header {
+    background: var(--red);
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .app-header h1 {
+    font-family: 'Playfair Display', serif;
+    color: var(--white);
+    font-size: 1.4rem;
+    letter-spacing: 0.02em;
+  }
+  .app-header span {
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
 
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,700,700i|Raleway:300,400,500,700,800" rel="stylesheet">
+  /* ── LAYOUT ── */
+  .workspace {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 60px);
+  }
 
-  <!-- Bootstrap CSS File -->
-  <link href="lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  /* ── PANEL IZQUIERDO (formulario) ── */
+  .panel {
+    background: var(--white);
+    border-right: 1px solid var(--border);
+    padding: 32px 28px;
+    overflow-y: auto;
+    max-height: calc(100vh - 60px);
+  }
 
-  <!-- Libraries CSS Files -->
-  <link href="lib/font-awesome/css/font-awesome.min.css" rel="stylesheet">
-  <link href="lib/animate-css/animate.min.css" rel="stylesheet">
+  .panel-section {
+    margin-bottom: 28px;
+  }
+  .panel-section-title {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
 
-  <!-- Main Stylesheet File -->
-  <link href="css/style.css" rel="stylesheet">
+  label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 5px;
+    margin-top: 12px;
+  }
+  label:first-of-type { margin-top: 0; }
 
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  textarea,
+  select {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    color: var(--ink);
+    background: var(--paper);
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--red);
+    background: var(--white);
+  }
+  textarea { resize: vertical; min-height: 64px; }
+
+  /* Logo upload */
+  .logo-upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--paper);
+    position: relative;
+  }
+  .logo-upload-area:hover { border-color: var(--accent); background: var(--accent-light); }
+  .logo-upload-area img { max-height: 80px; max-width: 100%; object-fit: contain; }
+  .logo-upload-area p { font-size: 0.78rem; color: var(--muted); margin-top: 6px; }
+  .logo-upload-area .icon { font-size: 2rem; }
+  #logoInput { display: none; }
+
+  /* Servicios */
+  .services-list { display: flex; flex-direction: column; gap: 8px; }
+  .service-item {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: 1fr 80px 80px 28px;
+    gap: 6px;
+    align-items: center;
+    font-size: 0.82rem;
+  }
+  .service-item input {
+    padding: 6px 8px;
+    font-size: 0.82rem;
+    margin: 0;
+  }
+  .btn-remove {
+    background: none;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0;
+    transition: color 0.2s;
+    text-align: center;
+  }
+  .btn-remove:hover { color: var(--danger); }
+
+  .btn-add {
+    width: 100%;
+    margin-top: 10px;
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn-add:hover { border-color: var(--accent); color: #a07c00; background: var(--accent-light); }
+
+  /* Impuestos */
+  .tax-row {
+    display: grid;
+    grid-template-columns: 1fr 100px 28px;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .tax-row input { padding: 7px 10px; font-size: 0.82rem; margin: 0; }
+
+  /* Botón generar PDF */
+  .btn-pdf {
+    width: 100%;
+    background: var(--red);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    padding: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .btn-pdf:hover { background: #cc0000; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(255,0,0,0.3); }
+  .btn-pdf:active { transform: translateY(0); }
+
+  /* ── PREVIEW (derecha) ── */
+  .preview-area {
+    padding: 40px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #efefef;
+    max-height: calc(100vh - 60px);
+  }
+  .preview-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+    font-weight: 500;
+  }
+
+  /* ── DOCUMENTO PDF ── */
+  #quotePDF {
+    width: 794px;
+    min-height: 1123px;
+    background: var(--white);
+    box-shadow: 0 8px 48px rgba(0,0,0,0.12);
+    padding: 56px 60px;
+    position: relative;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  /* Franja superior del documento */
+  .doc-topbar {
+    height: 7px;
+    background: linear-gradient(90deg, var(--red) 60%, var(--accent) 100%);
+    margin: -56px -60px 40px -60px;
+  }
+
+  .doc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 40px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .doc-company-block { flex: 1; }
+  .doc-logo {
+    max-height: 72px;
+    max-width: 180px;
+    object-fit: contain;
+    margin-bottom: 10px;
+  }
+  .doc-company-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .doc-company-info {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.6;
+  }
+
+  .doc-quote-meta {
+    text-align: right;
+    min-width: 180px;
+  }
+  .doc-quote-badge {
+    display: inline-block;
+    background: var(--red);
+    color: var(--white);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 3px;
+    margin-bottom: 10px;
+  }
+  .doc-quote-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .doc-meta-row {
+    font-size: 0.76rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .doc-meta-row strong { color: var(--ink); }
+
+  /* Sección cliente */
+  .doc-client-section {
+    background: var(--red-light);
+    border-left: 3px solid var(--red);
+    padding: 14px 20px;
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 32px;
+  }
+  .doc-client-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .doc-client-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .doc-client-notes {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  /* Tabla de servicios */
+  .doc-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 28px;
+    font-size: 0.84rem;
+  }
+  .doc-table thead tr {
+    background: var(--red);
+    color: var(--white);
+  }
+  .doc-table thead th {
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .doc-table thead th:last-child,
+  .doc-table thead th:nth-child(2),
+  .doc-table thead th:nth-child(3) { text-align: right; }
+  .doc-table tbody tr { border-bottom: 1px solid var(--border); }
+  .doc-table tbody tr:last-child { border-bottom: none; }
+  .doc-table tbody tr:hover { background: #fdf9f4; }
+  .doc-table td { padding: 11px 14px; color: var(--ink); vertical-align: top; }
+  .doc-table td:nth-child(2),
+  .doc-table td:nth-child(3),
+  .doc-table td:last-child { text-align: right; }
+  .doc-table td:first-child { font-weight: 500; }
+  .doc-table .desc-cell { font-size: 0.76rem; color: var(--muted); font-weight: 400; margin-top: 2px; }
+
+  /* Totales */
+  .doc-totals {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 40px;
+  }
+  .totals-box {
+    width: 260px;
+    font-size: 0.84rem;
+  }
+  .totals-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .totals-row:last-child { border-bottom: none; }
+  .totals-row.total-final {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-top: 6px;
+    padding-top: 10px;
+    border-top: 2px solid var(--red);
+  }
+  .totals-row span:last-child { font-weight: 500; color: var(--ink); }
+  .totals-row.total-final span:last-child { color: var(--red); }
+
+  /* Notas / footer */
+  .doc-notes {
+    background: var(--paper);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 28px;
+  }
+  .doc-notes strong { color: var(--ink); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 4px; }
+
+  .doc-footer {
+    border-top: 1px solid var(--border);
+    padding-top: 18px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  /* Responsive mínimo */
+  @media (max-width: 1200px) {
+    .workspace { grid-template-columns: 300px 1fr; }
+    #quotePDF { width: 680px; }
+  }
+  @media (max-width: 900px) {
+    .workspace { grid-template-columns: 1fr; }
+    .panel { max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
+    .preview-area { max-height: none; padding: 24px 12px; }
+    #quotePDF { width: 100%; min-width: 320px; }
+  }
+</style>
 </head>
-
 <body>
-  <div id="preloader"></div>
 
-  <!--==========================
-  Hero Section
-  ============================-->
-  <section id="hero">
-    <div class="hero-container">
-      <div class="wow fadeIn">
-        <div class="hero-logo">
-          <img class="" src="img/LOGO.png" alt="ProOnliPc">
-        </div>
+<header class="app-header">
+  <h1>✦ Presupuestos Pro</h1>
+  <span>Generador de cotizaciones</span>
+</header>
 
-        <h1>BIENVENIDOS</h1>
-        <h2>¿Listos para ordenar? <span class="rotating">Collage, Bomba, Delicioso</span></h2>
-        <div class="actions">
-          <a href="#portfolio" class="btn-get-started">MENU</a>
-          
+<div class="workspace">
+
+  <!-- ════ PANEL IZQUIERDO ════ -->
+  <aside class="panel">
+
+    <!-- Logo & Empresa -->
+    <div class="panel-section">
+      <div class="panel-section-title">Tu empresa</div>
+
+      <div class="logo-upload-area" onclick="document.getElementById('logoInput').click()" id="logoArea">
+        <div id="logoPlaceholder">
+          <div class="icon">🖼️</div>
+          <p>Haz clic para subir tu logotipo</p>
         </div>
+        <img id="logoPreview" style="display:none" alt="Logo">
       </div>
+      <input type="file" id="logoInput" accept="image/*">
+
+      <label>Nombre de la empresa</label>
+      <input type="text" id="companyName" placeholder="Mi Empresa S.A." oninput="updatePreview()">
+
+      <label>Información adicional (teléfono, web, dirección…)</label>
+      <textarea id="companyInfo" placeholder="Tel: 477 123 4567&#10;contacto@miempresa.com" oninput="updatePreview()"></textarea>
     </div>
-  </section>
 
-  <!--==========================
-  Sección de encabezado
-  ============================-->
-  <header id="header">
-    <div class="container">
-      <div id="logo" class="pull-left">
-        <a href="#hero"><img src="img/logo.png" alt="" title="" /></img></a>
-        <!-- Descomenta abajo si prefieres usar una imagen de texto -->
-        <!--<h1><a href="#hero">Encabezado 1</a></h1>-->
-      </div>
-
-      
+    <!-- Cliente -->
+    <div class="panel-section">
+      <div class="panel-section-title">Cliente</div>
+      <label>Nombre del cliente</label>
+      <input type="text" id="clientName" placeholder="Nombre del cliente o empresa" oninput="updatePreview()">
+      <label>Notas del cliente</label>
+      <input type="text" id="clientNotes" placeholder="RFC, dirección, proyecto…" oninput="updatePreview()">
     </div>
-  </header>
-  <!-- #header -->
 
-  <!--==========================
-  Porfolio Section
-  ============================-->
-  <section id="portfolio">
-    <div class="container wow fadeInUp">
-      <div class="row">
-        <div class="col-md-12">
-          <h3 class="section-title">Toca el platillo para conocer su preparacion </h3>
-          <div class="section-title-divider"></div>
-          <p class="section-description">Nuestra especialidad, el cliente.</p>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col-md-3">
-          <a class="portfolio-item" style="background-image: url(img/caldo.png);" >
-            <div class="details">
-             
-
-              <h4>Caldo de oso</h4>
-               
-              <span>Vinagre preparado con sal, limon, chile, vinagre, cebolla y queso.</span>
-              <h4>Ch $25 - M $40 - G $65</h4>
-            </div>
-          </a>
-        </div>
-
-        <div class="col-md-3">
-          <a class="portfolio-item" style="background-image: url(img/ara.png);" >
-            <div class="details">
-              <h4>Portfolio 2</h4>
-              <span>Alored dono par</span>
-            </div>
-          </a>
-        </div>
-
-        <div class="col-md-3">
-          <a class="portfolio-item" style="background-image: url(img/bom.png);" >
-            <div class="details">
-              <h4>Portfolio 3</h4>
-              <span>Alored dono par</span>
-            </div>
-          </a>
-        </div>
-
-        <div class="col-md-3">
-          <a class="portfolio-item" style="background-image: url(img/collague.png);" >
-            <div class="details">
-              <h4>Portfolio 4</h4>
-              <span>Alored dono par</span>
-            </div>
-          </a>
-        </div>
-
-        <div class="col-md-3">
-          <a class="portfolio-item" style="background-image: url(img/papas.png);" >
-            <div class="details">
-              <h4>Portfolio 5</h4>
-              <span>Alored dono par</span>
-            </div>
-          </a>
-        </div>
-
-        <div class="col-md-3">
-          <a class="portfolio-item" style="background-image: url(img/cha.png);" >
-            <div class="details">
-              <h4>Portfolio 6</h4>
-              <span>Alored dono par</span>
-            </div>
-          </a>
-        </div>
-
-        <div class="col-md-3">
-          <a class="portfolio-item" style="background-image: url(img/dede.png);">
-            <div class="details">
-              <h4>Portfolio 7</h4>
-              <span>Alored dono par</span>
-            </div>
-          </a>
-        </div>
-
-         <div class="col-md-3">
-          <a class="portfolio-item" style="background-image: url(img/caca.png);">
-            <div class="details">
-              <h4>Portfolio 7</h4>
-              <span>Alored dono par</span>
-            </div>
-          </a>
-        </div>
-
-         <div class="col-md-3">
-          <a class="portfolio-item" style="background-image: url(img/loco.png);">
-            <div class="details">
-              <h4>Portfolio 7</h4>
-              <span>Alored dono par</span>
-            </div>
-          </a>
-        </div>
-
-         <div class="col-md-3">
-          <a class="portfolio-item" style="background-image: url(img/coeh.png);">
-            <div class="details">
-              <h4>Portfolio 7</h4>
-              <span>Alored dono par</span>
-            </div>
-          </a>
-        </div>
-
-        <div class="col-md-3">
-          <a class="portfolio-item" style="background-image: url(img/clubs.png);">
-            <div class="details">
-              <h4>Portfolio 8</h4>
-              <span>Alored dono par</span>
-            </div>
-          </a>
-        </div>
-
-      </div>
+    <!-- Metadata -->
+    <div class="panel-section">
+      <div class="panel-section-title">Cotización</div>
+      <label>Número de cotización</label>
+      <input type="text" id="quoteNumber" placeholder="COT-001" oninput="updatePreview()">
+      <label>Fecha</label>
+      <input type="date" id="quoteDate" oninput="updatePreview()">
+      <label>Válida hasta</label>
+      <input type="date" id="quoteValidity" oninput="updatePreview()">
+      <label>Moneda</label>
+      <select id="currency" onchange="updatePreview()">
+        <option value="MXN">MXN — Peso mexicano</option>
+        <option value="USD">USD — Dólar americano</option>
+        <option value="EUR">EUR — Euro</option>
+      </select>
     </div>
-  </section>
 
-  
-        
-         
-  <!--==========================
-  Services Section
-  ============================-->
-  <section id="services">
-    <div class="container wow fadeInUp">
-      <div class="row">
-        <div class="col-md-12">
-          <h3 class="section-title">Our Services</h3>
-          <div class="section-title-divider"></div>
-          <p class="section-description">At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium</p>
-        </div>
+    <!-- Servicios -->
+    <div class="panel-section">
+      <div class="panel-section-title">Servicios / Productos</div>
+      <div style="display:grid; grid-template-columns:1fr 80px 80px 28px; gap:6px; font-size:0.7rem; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; padding:0 2px 4px;">
+        <span>Descripción</span><span style="text-align:right">Cant.</span><span style="text-align:right">Precio</span><span></span>
       </div>
-
-      <div class="row">
-        <div class="col-md-4 service-item">
-          <div class="service-icon"><i class="fa fa-desktop"></i></div>
-          <h4 class="service-title"><a href="">Lorem Ipsum</a></h4>
-          <p class="service-description">Voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident</p>
-        </div>
-        <div class="col-md-4 service-item">
-          <div class="service-icon"><i class="fa fa-bar-chart"></i></div>
-          <h4 class="service-title"><a href="">Dolor Sitema</a></h4>
-          <p class="service-description">Minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat tarad limino ata</p>
-        </div>
-        <div class="col-md-4 service-item">
-          <div class="service-icon"><i class="fa fa-paper-plane"></i></div>
-          <h4 class="service-title"><a href="">Sed ut perspiciatis</a></h4>
-          <p class="service-description">Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur</p>
-        </div>
-        <div class="col-md-4 service-item">
-          <div class="service-icon"><i class="fa fa-photo"></i></div>
-          <h4 class="service-title"><a href="">Magni Dolores</a></h4>
-          <p class="service-description">Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum</p>
-        </div>
-        <div class="col-md-4 service-item">
-          <div class="service-icon"><i class="fa fa-road"></i></div>
-          <h4 class="service-title"><a href="">Nemo Enim</a></h4>
-          <p class="service-description">At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque</p>
-        </div>
-        <div class="col-md-4 service-item">
-          <div class="service-icon"><i class="fa fa-shopping-bag"></i></div>
-          <h4 class="service-title"><a href="">Eiusmod Tempor</a></h4>
-          <p class="service-description">Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi</p>
-        </div>
-      </div>
+      <div class="services-list" id="servicesList"></div>
+      <button class="btn-add" onclick="addService()">＋ Agregar servicio</button>
     </div>
-  </section>
 
- 
-  
+    <!-- Impuestos -->
+    <div class="panel-section">
+      <div class="panel-section-title">Impuestos</div>
+      <div id="taxList"></div>
+      <button class="btn-add" onclick="addTax()">＋ Agregar impuesto</button>
+    </div>
 
+    <!-- Notas finales -->
+    <div class="panel-section">
+      <div class="panel-section-title">Notas / Condiciones</div>
+      <textarea id="quoteNotes" placeholder="Términos de pago, tiempo de entrega, vigencia, etc." oninput="updatePreview()"></textarea>
+    </div>
 
-    
-  <!--==========================
-  Contact Section
-  ============================-->
-  <section id="contact">
-    <div class="container wow fadeInUp">
-      <div class="row">
-        <div class="col-md-12">
-          <h3 class="section-title">Contact Us</h3>
-          <div class="section-title-divider"></div>
-          <p class="section-description">Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque</p>
+    <!-- CTA -->
+    <button class="btn-pdf" onclick="generatePDF()">
+      ⬇ Descargar PDF
+    </button>
+
+  </aside>
+
+  <!-- ════ ÁREA DE VISTA PREVIA ════ -->
+  <main class="preview-area">
+    <div class="preview-label">Vista previa en tiempo real</div>
+
+    <!-- Documento que se convierte a PDF -->
+    <div id="quotePDF">
+      <div class="doc-topbar"></div>
+
+      <!-- Cabecera empresa -->
+      <div class="doc-header">
+        <div class="doc-company-block">
+          <img id="pdfLogo" class="doc-logo" src="" alt="Logo" style="display:none">
+          <div class="doc-company-name" id="pdfCompanyName">Nombre de la Empresa</div>
+          <div class="doc-company-info" id="pdfCompanyInfo"></div>
+        </div>
+        <div class="doc-quote-meta">
+          <div class="doc-quote-badge">Cotización</div>
+          <div class="doc-quote-number" id="pdfQuoteNumber">COT-001</div>
+          <div class="doc-meta-row">Fecha: <strong id="pdfDate">—</strong></div>
+          <div class="doc-meta-row">Válida hasta: <strong id="pdfValidity">—</strong></div>
         </div>
       </div>
 
-      <div class="row">
-        <div class="col-md-3 col-md-push-2">
-          <div class="info">
-            <div>
-              <i class="fa fa-map-marker"></i>
-              <p>A108 Adam Street<br>New York, NY 535022</p>
-            </div>
+      <!-- Cliente -->
+      <div class="doc-client-section">
+        <div class="doc-client-label">Cotización para</div>
+        <div class="doc-client-name" id="pdfClientName">Nombre del cliente</div>
+        <div class="doc-client-notes" id="pdfClientNotes"></div>
+      </div>
 
-            <div>
-              <i class="fa fa-envelope"></i>
-              <p>info@example.com</p>
-            </div>
+      <!-- Tabla de servicios -->
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Descripción</th>
+            <th>Cant.</th>
+            <th>Precio unit.</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="pdfTableBody">
+          <tr><td colspan="4" style="text-align:center; color:var(--muted); font-size:0.8rem; padding:24px;">Agrega servicios en el panel izquierdo</td></tr>
+        </tbody>
+      </table>
 
-            <div>
-              <i class="fa fa-phone"></i>
-              <p>+1 5589 55488 55s</p>
-            </div>
-
+      <!-- Totales -->
+      <div class="doc-totals">
+        <div class="totals-box" id="pdfTotals">
+          <div class="totals-row">
+            <span>Subtotal</span>
+            <span id="pdfSubtotal">$0.00</span>
+          </div>
+          <!-- Los impuestos se insertan aquí dinámicamente -->
+          <div class="totals-row total-final">
+            <span>Total</span>
+            <span id="pdfTotal">$0.00</span>
           </div>
         </div>
+      </div>
 
-     
+      <!-- Notas -->
+      <div class="doc-notes" id="pdfNotes" style="display:none">
+        <strong>Notas y condiciones</strong>
+        <span id="pdfNotesText"></span>
+      </div>
 
-  <a href="#" class="back-to-top"><i class="fa fa-chevron-up"></i></a>
+      <!-- Footer -->
+      <div class="doc-footer">
+        <span id="pdfFooterCompany">—</span>
+        <span>Documento generado con Presupuestos Pro</span>
+      </div>
 
-  <!-- Required JavaScript Libraries -->
-  <script src="lib/jquery/jquery.min.js"></script>
-  <script src="lib/bootstrap/js/bootstrap.min.js"></script>
-  <script src="lib/superfish/hoverIntent.js"></script>
-  <script src="lib/superfish/superfish.min.js"></script>
-  <script src="lib/morphext/morphext.min.js"></script>
-  <script src="lib/wow/wow.min.js"></script>
-  <script src="lib/stickyjs/sticky.js"></script>
-  <script src="lib/easing/easing.js"></script>
+    </div><!-- /quotePDF -->
+  </main>
 
-  <!-- Template Specisifc Custom Javascript File -->
-  <script src="js/custom.js"></script>
+</div><!-- /workspace -->
 
-  <script src="contactform/contactform.js"></script>
+<script>
+// ── Estado ──────────────────────────────────────────────
+let services = [];
+let taxes = [];
+let logoDataURL = '';
 
+// ── Init ─────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('quoteDate').valueAsDate = new Date();
+  const validity = new Date(); validity.setDate(validity.getDate() + 30);
+  document.getElementById('quoteValidity').valueAsDate = validity;
+  document.getElementById('quoteNumber').value = 'COT-001';
+  addService();
+  addTax('IVA 16%', 16);
+  updatePreview();
+});
 
+// ── Logo ─────────────────────────────────────────────────
+document.getElementById('logoInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    logoDataURL = ev.target.result;
+    const img = document.getElementById('logoPreview');
+    img.src = logoDataURL;
+    img.style.display = 'block';
+    document.getElementById('logoPlaceholder').style.display = 'none';
+    updatePreview();
+  };
+  reader.readAsDataURL(file);
+});
+
+// ── Servicios ────────────────────────────────────────────
+function addService() {
+  const id = Date.now();
+  services.push({ id, name: '', qty: 1, price: 0 });
+  renderServices();
+}
+
+function removeService(id) {
+  services = services.filter(s => s.id !== id);
+  renderServices();
+  updatePreview();
+}
+
+function renderServices() {
+  const list = document.getElementById('servicesList');
+  list.innerHTML = '';
+  services.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'service-item';
+    div.innerHTML = `
+      <input type="text" placeholder="Nombre del servicio" value="${s.name}"
+             oninput="updateServiceField(${s.id},'name',this.value)">
+      <input type="number" placeholder="1" value="${s.qty}" min="1"
+             oninput="updateServiceField(${s.id},'qty',this.value)">
+      <input type="number" placeholder="0.00" value="${s.price}" min="0" step="0.01"
+             oninput="updateServiceField(${s.id},'price',this.value)">
+      <button class="btn-remove" onclick="removeService(${s.id})">✕</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function updateServiceField(id, field, value) {
+  const s = services.find(s => s.id === id);
+  if (s) { s[field] = field === 'name' ? value : parseFloat(value) || 0; }
+  updatePreview();
+}
+
+// ── Impuestos ─────────────────────────────────────────────
+function addTax(name = '', rate = 0) {
+  const id = Date.now();
+  taxes.push({ id, name, rate });
+  renderTaxes();
+  updatePreview();
+}
+
+function removeTax(id) {
+  taxes = taxes.filter(t => t.id !== id);
+  renderTaxes();
+  updatePreview();
+}
+
+function renderTaxes() {
+  const list = document.getElementById('taxList');
+  list.innerHTML = '';
+  taxes.forEach(t => {
+    const div = document.createElement('div');
+    div.className = 'tax-row';
+    div.innerHTML = `
+      <input type="text" placeholder="Nombre (ej. IVA)" value="${t.name}"
+             oninput="updateTaxField(${t.id},'name',this.value)">
+      <input type="number" placeholder="%" value="${t.rate}" min="0" max="100" step="0.01"
+             oninput="updateTaxField(${t.id},'rate',this.value)" style="text-align:right">
+      <button class="btn-remove" onclick="removeTax(${t.id})">✕</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function updateTaxField(id, field, value) {
+  const t = taxes.find(t => t.id === id);
+  if (t) { t[field] = field === 'name' ? value : parseFloat(value) || 0; }
+  updatePreview();
+}
+
+// ── Formateo de moneda ────────────────────────────────────
+function fmt(num) {
+  const cur = document.getElementById('currency')?.value || 'MXN';
+  const symbol = cur === 'MXN' ? 'MX$' : cur === 'USD' ? 'US$' : '€';
+  return symbol + ' ' + num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function fmtDate(str) {
+  if (!str) return '—';
+  const [y, m, d] = str.split('-');
+  const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+}
+
+// ── Actualizar vista previa ───────────────────────────────
+function updatePreview() {
+  // Logo
+  const pdfLogo = document.getElementById('pdfLogo');
+  if (logoDataURL) { pdfLogo.src = logoDataURL; pdfLogo.style.display = 'block'; }
+  else { pdfLogo.style.display = 'none'; }
+
+  // Empresa
+  document.getElementById('pdfCompanyName').textContent =
+    document.getElementById('companyName').value || 'Nombre de la Empresa';
+  document.getElementById('pdfCompanyInfo').innerHTML =
+    (document.getElementById('companyInfo').value || '').replace(/\n/g, '<br>');
+  document.getElementById('pdfFooterCompany').textContent =
+    document.getElementById('companyName').value || '—';
+
+  // Meta
+  document.getElementById('pdfQuoteNumber').textContent =
+    document.getElementById('quoteNumber').value || 'COT-001';
+  document.getElementById('pdfDate').textContent =
+    fmtDate(document.getElementById('quoteDate').value);
+  document.getElementById('pdfValidity').textContent =
+    fmtDate(document.getElementById('quoteValidity').value);
+
+  // Cliente
+  document.getElementById('pdfClientName').textContent =
+    document.getElementById('clientName').value || 'Nombre del cliente';
+  document.getElementById('pdfClientNotes').textContent =
+    document.getElementById('clientNotes').value || '';
+
+  // Servicios → tabla
+  const tbody = document.getElementById('pdfTableBody');
+  tbody.innerHTML = '';
+  if (services.length === 0 || services.every(s => !s.name)) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);font-size:0.8rem;padding:24px;">Agrega servicios en el panel izquierdo</td></tr>';
+  } else {
+    services.filter(s => s.name).forEach(s => {
+      const total = (s.qty || 0) * (s.price || 0);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${s.name}</td>
+        <td>${s.qty}</td>
+        <td>${fmt(s.price)}</td>
+        <td>${fmt(total)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Cálculos
+  const subtotal = services.filter(s => s.name).reduce((acc, s) => acc + (s.qty||0)*(s.price||0), 0);
+
+  // Totales box → reconstruir filas de impuesto
+  const totalsBox = document.getElementById('pdfTotals');
+  // Limpiar impuestos anteriores (todo excepto subtotal y total)
+  const oldTaxRows = totalsBox.querySelectorAll('.tax-dynamic');
+  oldTaxRows.forEach(el => el.remove());
+
+  document.getElementById('pdfSubtotal').textContent = fmt(subtotal);
+
+  let taxTotal = 0;
+  const totalFinalRow = totalsBox.querySelector('.total-final');
+  taxes.forEach(t => {
+    if (!t.name) return;
+    const amount = subtotal * (t.rate / 100);
+    taxTotal += amount;
+    const row = document.createElement('div');
+    row.className = 'totals-row tax-dynamic';
+    row.innerHTML = `<span>${t.name} (${t.rate}%)</span><span>${fmt(amount)}</span>`;
+    totalsBox.insertBefore(row, totalFinalRow);
+  });
+
+  const total = subtotal + taxTotal;
+  document.getElementById('pdfTotal').textContent = fmt(total);
+
+  // Notas
+  const notesVal = document.getElementById('quoteNotes').value;
+  const pdfNotes = document.getElementById('pdfNotes');
+  if (notesVal.trim()) {
+    pdfNotes.style.display = 'block';
+    document.getElementById('pdfNotesText').textContent = notesVal;
+  } else {
+    pdfNotes.style.display = 'none';
+  }
+}
+
+// ── Generar PDF ───────────────────────────────────────────
+function generatePDF() {
+  const element = document.getElementById('quotePDF');
+  const quoteNum = document.getElementById('quoteNumber').value || 'cotizacion';
+  const client = document.getElementById('clientName').value || 'cliente';
+
+  const opt = {
+    margin: 0,
+    filename: `${quoteNum}_${client}.pdf`.replace(/\s+/g, '_'),
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' }
+  };
+
+  const btn = document.querySelector('.btn-pdf');
+  btn.textContent = '⏳ Generando PDF…';
+  btn.disabled = true;
+
+  html2pdf().set(opt).from(element).save().then(() => {
+    btn.innerHTML = '⬇ Descargar PDF';
+    btn.disabled = false;
+  });
+}
+</script>
 </body>
-
 </html>
